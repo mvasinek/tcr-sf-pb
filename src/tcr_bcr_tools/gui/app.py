@@ -49,7 +49,7 @@ def main() -> None:
             render_dataset_panel(dataset)
         elif selected_project:
             project = workspace.open_project(selected_project)
-            render_project_panel(project)
+            render_project_panel(project, workspace)
         else:
             render_workspace_panel(workspace)
 

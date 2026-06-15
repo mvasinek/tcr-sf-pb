@@ -202,7 +202,31 @@ The GUI provides:
 - **Projects** — browse, create, open, and delete analysis projects
 - **Datasets** — register shared datasets with adapter metadata and raw directory paths
 
-Analytical modules are not launched from the GUI yet (planned for v0.5.2 Pipeline Runner).
+Analytical steps run through the **Pipeline Runner** — the GUI orchestrates execution but does not contain analytical logic.
+
+## Pipeline Runner
+
+The pipeline layer (`src/tcr_bcr_tools/pipeline/`) provides a GUI-independent execution engine:
+
+- **Run step** — execute one registered analytical step via `PipelineRunner.run_step()`
+- **Run pipeline** — execute all steps in dependency order via `PipelineRunner.run()`
+- **Dependency validation** — refuse to run a step until required upstream steps are `completed`
+- **Cache** — reuse existing outputs when files are present (`needs_recompute()`); use `force_recompute=True` to ignore cache
+- **Run history** — each run is recorded in `projects/<id>/logs/run_history.yaml` with Git branch, commit, and tag
+- **Pipeline log** — structured log at `projects/<id>/logs/pipeline.log`
+
+```python
+from pathlib import Path
+from tcr_bcr_tools.pipeline import PipelineRunner
+from tcr_bcr_tools.project import Workspace
+
+workspace = Workspace(Path("~/tcr-sf-pb-workspace"))
+workspace.load()
+project = workspace.open_project("JIA_Pilot")
+runner = PipelineRunner(workspace, project)
+runner.run_step("extract_annotations")
+runner.run()
+```
 
 ## Local Streamlit GUI
 
@@ -213,7 +237,11 @@ pip install -e .
 streamlit run src/tcr_bcr_tools/gui/app.py
 ```
 
-The GUI uses the `Workspace` API to display workspace path, project, datasets, and pipeline status. It does not run analyses yet.
+The GUI uses the `Workspace` API and `PipelineRunner` to display projects, datasets, pipeline status, logs, and outputs. It does not call analytical functions directly.
+
+### Pipeline panel (v0.5.2)
+
+When a project is open, the **Pipeline** panel lists registered steps with status, run controls, step detail, run history, pipeline log, and an output browser.
 
 ### Workspace layout (v0.5.0)
 
@@ -259,8 +287,8 @@ workspace.create_project(
 - [x] `Workspace`, `Project`, `Dataset` APIs
 - [x] `BaseAdapter` interface
 - [x] Streamlit workspace & project manager (v0.5.1)
-- [ ] Pipeline runner (v0.5.2)
-- [ ] Wire analyses to project manifests
+- [x] Pipeline runner (v0.5.2)
+- [ ] Wire adapters to project manifests
 
 ### Phase 0.6.x — Adapters
 

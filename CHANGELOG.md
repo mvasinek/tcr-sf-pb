@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+## [0.5.2]
+
+### Added
+
+- Pipeline Runner
+- Pipeline registry
+- PipelineStep abstraction
+- Dependency management
+- Run history
+- Pipeline log
+- Output registry
+- Cache support
+- Run-all execution
+- Streamlit pipeline panel
+- Output browser
+
 ## [0.5.1]
 
 ### Added

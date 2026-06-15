@@ -1,16 +1,16 @@
-"""Project overview and status panels."""
+"""Project overview and pipeline panels."""
 
 from __future__ import annotations
 
 import streamlit as st
 
-from tcr_bcr_tools.gui.constants import FUTURE_ANALYSES
 from tcr_bcr_tools.gui.helpers import build_status_rows
-from tcr_bcr_tools.project import Project
+from tcr_bcr_tools.gui.pipeline_panel import render_pipeline_panel
+from tcr_bcr_tools.project import Project, Workspace
 
 
-def render_project_panel(project: Project) -> None:
-    """Render project overview, status table, and future analyses."""
+def render_project_panel(project: Project, workspace: Workspace) -> None:
+    """Render project overview, status table, and pipeline execution."""
     data = project.manifest()
     project_meta = data.get("project", {})
     datasets = data.get("datasets", [])
@@ -25,21 +25,20 @@ def render_project_panel(project: Project) -> None:
     st.markdown(f"**Adapter:** {data.get('adapter', '')}")
 
     _render_status_table(project)
-    _render_available_analyses()
+    render_pipeline_panel(workspace, project)
 
 
 def _render_status_table(project: Project) -> None:
     st.markdown("### Status")
-    status_map = project.get_status()
-    if not isinstance(status_map, dict):
-        status_map = {}
+    pipeline = project.manifest().get("pipeline", {})
+    status_map = {
+        step_id: str(state.get("status", "pending"))
+        for step_id, state in pipeline.items()
+        if isinstance(state, dict)
+    }
+    if not status_map:
+        legacy = project.get_status()
+        if isinstance(legacy, dict):
+            status_map = legacy
     rows = build_status_rows(status_map)
     st.table([{"Step": row["step"], "Status": row["display"]} for row in rows])
-    for row in rows:
-        st.markdown(f":{row['color']}[{row['step']}: {row['display']}]")
-
-
-def _render_available_analyses() -> None:
-    st.markdown("### 📊 Available analyses")
-    for analysis in FUTURE_ANALYSES:
-        st.markdown(f"- **{analysis}** — Coming in future release")

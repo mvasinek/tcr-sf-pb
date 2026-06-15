@@ -91,14 +91,16 @@ def test_dataset_yaml_load(tmp_path: Path) -> None:
 def test_build_status_rows() -> None:
     rows = build_status_rows(
         {
-            "extract_annotations": "done",
+            "extract_annotations": "completed",
             "roc_auc": "pending",
             "decile_information": "failed",
         }
     )
     assert rows[0]["display"] == "✔"
-    assert rows[4]["status"] == "pending"
-    assert rows[5]["color"] == "red"
+    roc_row = next(row for row in rows if row["step_key"] == "roc_auc")
+    assert roc_row["status"] == "pending"
+    decile_row = next(row for row in rows if row["step_key"] == "decile_information")
+    assert decile_row["color"] == "red"
 
 
 def test_format_status_unknown() -> None:
@@ -143,10 +145,11 @@ def test_git_helpers_repo_root() -> None:
         assert summary["available"] == "true"
     else:
         summary = get_git_summary(repo_root)
-        assert summary["branch"] == "Git unavailable"
+        assert summary["branch"] == "unknown"
 
 
 def test_git_helpers_non_repo(tmp_path: Path) -> None:
     assert git_available(tmp_path) is False
     summary = get_git_summary(tmp_path)
     assert summary["available"] == "false"
+    assert summary["branch"] == "unknown"

@@ -21,6 +21,8 @@ def default_session_state(home: Path | None = None) -> dict[str, Any]:
         "show_settings": False,
         "show_logs": False,
         "show_about": False,
+        "selected_pipeline_step": "",
+        "force_recompute": False,
     }
 
 

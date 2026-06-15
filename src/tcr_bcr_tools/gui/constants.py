@@ -2,35 +2,20 @@
 
 from __future__ import annotations
 
-PIPELINE_STEPS = [
-    ("extract_annotations", "Extract annotations"),
-    ("unified_table", "Unified table"),
-    ("paired_detection", "Detection"),
-    ("expansion", "Expansion"),
-    ("roc_auc", "ROC"),
-    ("decile_information", "Heatmap"),
-]
-
-FUTURE_ANALYSES = [
-    "Detection curves",
-    "Expansion",
-    "Threshold sweep",
-    "Rank concordance",
-    "ROC/AUC",
-    "Regression",
-    "Decile information",
-]
-
 STATUS_LABELS = {
+    "completed": ("✔", "green"),
     "done": ("✔", "green"),
-    "pending": ("Pending", "orange"),
-    "failed": ("Failed", "red"),
-    "running": ("Running", "blue"),
+    "pending": ("○", "orange"),
+    "failed": ("✖", "red"),
+    "running": ("⟳", "blue"),
+    "skipped": ("⊘", "gray"),
 }
 
 ADAPTER_OPTIONS = ["tenx", "bdrhapsody", "airr", "custom"]
 
 DEFAULT_WORKSPACE_NAME = "tcr-sf-pb-workspace"
+
+LOG_LEVEL_FILTERS = ["All", "Info", "Warning", "Error"]
 
 SESSION_KEYS = (
     "workspace_path",
@@ -42,4 +27,6 @@ SESSION_KEYS = (
     "show_settings",
     "show_logs",
     "show_about",
+    "selected_pipeline_step",
+    "force_recompute",
 )
