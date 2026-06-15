@@ -24,6 +24,10 @@ def render_project_panel(project: Project, workspace: Workspace) -> None:
     st.markdown(f"**Dataset:** {', '.join(datasets) if datasets else '(none)'}")
     st.markdown(f"**Adapter:** {data.get('adapter', '')}")
 
+    if st.button("Open Results Browser", key="open_project_results"):
+        st.session_state.show_results = True
+        st.session_state.selected_results_analysis = ""
+
     _render_status_table(project)
     render_pipeline_panel(workspace, project)
 

@@ -228,6 +228,18 @@ datasets/<id>/intermediate/validation_report.yaml
 datasets/<id>/intermediate/validation_summary.json
 ```
 
+## Output registry and results browser
+
+Pipeline steps register outputs automatically through `OutputRegistry.register_from_step()`. Each entry stores id, name, analysis, type, created timestamp, Git metadata, workspace-relative path, and description.
+
+```
+Pipeline → Output Registry → Results Browser → Visualization Components → User
+```
+
+The Streamlit GUI reads outputs exclusively through the registry API (`list_outputs()`, `find_output()`, `search_outputs()`, `favorite()`, `recent()`). It does not traverse project directories directly.
+
+Registry data is stored in `project.yaml` under `output_registry`. Favorites and recent files are stored under `project/cache/`.
+
 ## Local Streamlit GUI
 
 ```bash

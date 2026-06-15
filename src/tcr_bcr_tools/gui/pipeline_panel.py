@@ -47,7 +47,7 @@ def render_pipeline_panel(
     _render_step_table(runner, states)
     _render_step_detail(states)
     _render_run_controls(runner)
-    _render_output_browser(workspace, states)
+    _render_output_browser(workspace, project, states)
     _render_history_panel(project)
     _render_log_panel(project)
 
@@ -149,36 +149,31 @@ def _render_step_detail(states: list[dict]) -> None:
     st.markdown(f"**Last run:** {state.get('finished', '—')}")
 
 
-def _render_output_browser(workspace: Workspace, states: list[dict]) -> None:
+def _render_output_browser(workspace: Workspace, project: Project, states: list[dict]) -> None:
     step_id = st.session_state.get("selected_pipeline_step")
     if not step_id:
         return
-    state = next((item for item in states if item["id"] == step_id), None)
-    if state is None:
-        return
-
-    st.markdown("### Generated outputs")
-    outputs = state.get("outputs", {})
-    all_paths: list[str] = []
-    for paths in outputs.values():
-        all_paths.extend(paths)
-    if not all_paths:
+    registry = project.output_registry(workspace.root)
+    entries = registry.list_analysis_outputs(step_id)
+    if not entries:
         st.caption("No registered outputs for this step.")
         return
-
-    selected_output = st.selectbox("Output file", options=all_paths, key="output_file")
-    output_path = workspace.root / selected_output
-    if not output_path.exists():
-        st.warning("Output file is missing on disk.")
+    st.markdown("### Generated outputs")
+    selected = st.selectbox(
+        "Output file",
+        options=[entry.id for entry in entries],
+        format_func=lambda output_id: registry.find_output(output_id).name,
+        key="pipeline_output_file",
+    )
+    entry = registry.find_output(selected)
+    if entry is None:
         return
-
-    if output_path.suffix.lower() == ".csv":
-        df = pd.read_csv(output_path)
-        st.dataframe(df, use_container_width=True)
-    elif output_path.suffix.lower() in {".png", ".jpg", ".jpeg", ".svg"}:
-        st.image(str(output_path))
-    else:
-        st.code(str(output_path))
+    st.markdown(f"`{entry.path}`")
+    if st.button("Open in Results Browser", key="open_results_browser"):
+        st.session_state.show_results = True
+        st.session_state.selected_results_analysis = step_id
+        st.session_state.selected_output_id = entry.id
+        st.rerun()
 
 
 def _render_history_panel(project: Project) -> None:

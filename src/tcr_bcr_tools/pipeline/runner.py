@@ -213,6 +213,16 @@ class PipelineRunner:
                 version=step.version,
             )
             self.project.set_step_outputs(step_id, outputs)
+            git_meta = self._git_metadata()
+            registry = self.project.output_registry(self.workspace.root)
+            registry.register_from_step(
+                step_id,
+                outputs,
+                git_branch=git_meta["git_branch"],
+                git_commit=git_meta["git_commit"],
+                git_tag=git_meta["git_tag"],
+                tool_version=__version__,
+            )
             self._record_history(
                 step_id,
                 started=started_at,

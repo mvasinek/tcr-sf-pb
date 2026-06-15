@@ -23,6 +23,12 @@ def default_session_state(home: Path | None = None) -> dict[str, Any]:
         "show_about": False,
         "selected_pipeline_step": "",
         "force_recompute": False,
+        "show_results": False,
+        "selected_results_analysis": "",
+        "selected_output_id": "",
+        "results_search_query": "",
+        "compare_output_a": "",
+        "compare_output_b": "",
     }
 
 

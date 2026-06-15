@@ -9,6 +9,7 @@ import streamlit as st
 from tcr_bcr_tools.gui.dataset_panel import render_dataset_panel
 from tcr_bcr_tools.gui.inspector_panel import render_inspector_panel
 from tcr_bcr_tools.gui.project_panel import render_project_panel
+from tcr_bcr_tools.gui.results_browser import render_results_browser
 from tcr_bcr_tools.gui.session_state import init_session_state
 from tcr_bcr_tools.gui.sidebar import render_sidebar
 from tcr_bcr_tools.gui.status_bar import render_status_bar
@@ -49,7 +50,10 @@ def main() -> None:
             render_dataset_panel(dataset)
         elif selected_project:
             project = workspace.open_project(selected_project)
-            render_project_panel(project, workspace)
+            if st.session_state.get("show_results"):
+                render_results_browser(workspace, project)
+            else:
+                render_project_panel(project, workspace)
         else:
             render_workspace_panel(workspace)
 

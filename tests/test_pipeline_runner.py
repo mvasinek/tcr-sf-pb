@@ -172,6 +172,7 @@ def test_output_registry_load(pipeline_workspace) -> None:
     runner = PipelineRunner(workspace, project, repo_root=Path(__file__).resolve().parents[1])
     runner.run_step("validate_dataset")
     runner.run_step("extract_annotations")
-    registry = project.get_output_registry()
-    assert "extract_annotations" in registry
-    assert registry["extract_annotations"]["csv"]
+    legacy_registry = project.get_output_registry()
+    assert "extract_annotations" in legacy_registry
+    indexed = project.output_registry(workspace.root).list_outputs()
+    assert indexed

@@ -258,6 +258,22 @@ dataset/intermediate/validation_summary.json
 
 In Streamlit, open a dataset and use the **Data Validation** panel to run validation, inspect rules, quality metrics, and Plotly charts. The pipeline panel provides **Continue anyway** when only ERROR-level issues are present.
 
+## Results Browser
+
+The Results Browser (`src/tcr_bcr_tools/gui/results_browser.py`) is the primary way to explore project outputs. The GUI never scans the filesystem directly — all files are loaded through the **Output Registry** (`project/output_registry.py`).
+
+- **Output Registry** — indexed metadata for every pipeline output (CSV, PNG, YAML, JSON, HTML, directories)
+- **Preview system** — interactive CSV table with filter, column selection, pagination, and export
+- **Figure Gallery** — browse all registered PNG outputs
+- **Table Gallery** — browse all registered CSV outputs
+- **Search** — filter by filename, analysis, description, or type
+- **Favorites** — starred outputs stored in `project/cache/favorites.yaml`
+- **Recent** — last 20 opened outputs
+- **Compare** — side-by-side preview of two outputs
+- **ZIP export** — export current, selected, or all registered outputs
+
+Open a project and click **Open Results Browser**, or use the **Results** section in the sidebar.
+
 ## Pipeline Runner
 
 The pipeline layer (`src/tcr_bcr_tools/pipeline/`) provides a GUI-independent execution engine:

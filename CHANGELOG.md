@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+## [0.5.5]
+
+### Added
+
+- Results Browser.
+- Output Registry API.
+- Interactive CSV Viewer.
+- Figure Gallery.
+- Table Gallery.
+- Search engine for outputs.
+- Favorites.
+- Recent outputs.
+- Metadata panel.
+- Output comparison.
+- ZIP export.
+- Project Summary dashboard.
+
 ## [0.5.4]
 
 ### Added

@@ -9,6 +9,7 @@ import streamlit as st
 from tcr_bcr_tools import __version__
 from tcr_bcr_tools.gui.constants import ADAPTER_OPTIONS
 from tcr_bcr_tools.gui.dialogs import create_project_from_dialog, register_dataset_from_dialog
+from tcr_bcr_tools.gui.results_browser import render_results_sidebar_actions
 from tcr_bcr_tools.project import Workspace
 
 
@@ -85,6 +86,9 @@ def render_sidebar() -> None:
             st.rerun()
     if st.sidebar.button("Show metadata", use_container_width=True, disabled=not st.session_state.selected_dataset):
         st.session_state.show_dataset_overview = True
+
+    st.sidebar.divider()
+    render_results_sidebar_actions()
 
     st.sidebar.divider()
     st.sidebar.markdown("### Application")

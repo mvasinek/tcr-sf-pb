@@ -38,6 +38,7 @@ def _default_project_manifest(
         "status": {},
         "pipeline": {},
         "outputs": {},
+        "output_registry": [],
     }
 
 
@@ -172,7 +173,7 @@ class Project:
         self.save()
 
     def get_output_registry(self) -> dict[str, dict[str, list[str]]]:
-        """Return the full output registry from project.yaml."""
+        """Return the legacy per-step output mapping from project.yaml."""
         if not self._data:
             self.load()
         outputs = self._data.get("outputs", {})
@@ -183,6 +184,12 @@ class Project:
             if isinstance(step_outputs, dict):
                 result[str(step_id)] = self.get_step_outputs(str(step_id))
         return result
+
+    def output_registry(self, workspace_root: Path) -> Any:
+        """Return the indexed output registry API for this project."""
+        from tcr_bcr_tools.project.output_registry import OutputRegistry
+
+        return OutputRegistry(self.root, workspace_root)
 
     def manifest(self) -> dict[str, Any]:
         """Return full project manifest data."""

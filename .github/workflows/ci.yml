@@ -38,6 +38,10 @@ jobs:
         run: |
           pytest tests/test_validation_rules.py tests/test_validation_report.py tests/test_dataset_validation.py tests/test_pipeline_validation.py -v
 
+      - name: Results browser tests
+        run: |
+          pytest tests/test_output_registry.py tests/test_results_browser.py tests/test_csv_viewer.py tests/test_gallery.py tests/test_search.py -v
+
       - name: Smoke test imports
         run: |
           python -c "import tcr_bcr_tools"
