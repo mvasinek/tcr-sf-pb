@@ -1,0 +1,1 @@
+"""AIRR adapter (implementation pending)."""

@@ -3,7 +3,7 @@
 Python library for analyzing TCR/BCR repertoire overlap between peripheral blood and synovial fluid in single-cell experiments.
 
 **Repository:** [github.com/mvasinek/tcr-sf-pb](https://github.com/mvasinek/tcr-sf-pb)  
-**Current version:** 0.4.8  
+**Current version:** 0.5.0  
 **License:** MIT
 
 ---
@@ -45,7 +45,7 @@ Adapters (planned)  →  Core library  →  Analysis modules  →  Pipeline/CLI 
 | **Analysis modules** | Implemented | Detection curves, expansion, rank, regression, ROC, deciles |
 | **Pipeline** | Partial (CLI) | Each module has `python -m tcr_bcr_tools.<module>` entry point |
 | **GUI** | In progress | Local Streamlit shell — orchestration only, no analytics |
-| **Project management** | Planned | `project.yaml` + `raw/`, `outputs/`, `figures/` per analysis |
+| **Project management** | Implemented | `Workspace`, `Project`, `Dataset` APIs |
 
 See [docs/architecture.md](docs/architecture.md) for details.
 
@@ -102,8 +102,9 @@ Full changelog: [CHANGELOG.md](CHANGELOG.md). Specifications: [specifications/](
 ```
 tcr-sf-pb/
 ├── src/tcr_bcr_tools/     # Core library, analysis modules, GUI, adapters
+│   ├── project/           # Workspace, project, dataset APIs
 │   ├── gui/               # Local Streamlit shell
-│   └── adapters/          # Input format adapters (planned)
+│   └── adapters/          # Input format adapters
 ├── tests/                 # pytest suite
 ├── docs/                  # Architecture and design docs
 ├── specifications/        # Feature specifications (SDD)
@@ -188,16 +189,48 @@ pytest
 
 ## Local Streamlit GUI
 
-The project will provide a **local** Streamlit application (not a web service) for bioinformatics analysis at `localhost:8501`.
-
-Install and run:
+Local bioinformatics environment at `http://localhost:8501` (not a hosted web service).
 
 ```bash
 pip install -e .
 streamlit run src/tcr_bcr_tools/gui/app.py
 ```
 
-The GUI shell provides workspace and project selection. Analytical logic remains in `src/tcr_bcr_tools/` — the GUI only orchestrates projects and displays outputs.
+The GUI uses the `Workspace` API to display workspace path, project, datasets, and pipeline status. It does not run analyses yet.
+
+### Workspace layout (v0.5.0)
+
+```text
+workspace/
+    settings.yaml
+    datasets/GSE160097/
+        dataset.yaml
+        raw/
+        intermediate/
+    projects/JIA_Pilot/
+        project.yaml
+        outputs/
+        figures/
+        logs/
+        cache/
+```
+
+Create a workspace programmatically:
+
+```python
+from pathlib import Path
+from tcr_bcr_tools.project import Workspace
+
+workspace = Workspace(Path("~/tcr-sf-pb-workspace"))
+workspace.load()
+workspace.create_dataset("GSE160097", source="GEO", adapter="tenx")
+workspace.create_project(
+    "JIA_Pilot",
+    name="JIA Pilot",
+    datasets=["GSE160097"],
+    analysis="detection",
+)
+```
 
 ---
 
@@ -205,9 +238,11 @@ The GUI shell provides workspace and project selection. Analytical logic remains
 
 ### Phase 0.5.x — Local Streamlit GUI and project mode
 
-- [ ] Streamlit GUI shell (`src/tcr_bcr_tools/gui/`)
-- [ ] Workspace layout (`settings.yaml`, `datasets/`, `projects/`)
-- [ ] `project.yaml` configuration
+- [x] Workspace layout (`settings.yaml`, `datasets/`, `projects/`)
+- [x] `Workspace`, `Project`, `Dataset` APIs
+- [x] `BaseAdapter` interface
+- [x] Streamlit GUI shell
+- [ ] Wire analyses to project manifests
 - [ ] Single-command pipeline runner
 
 ### Phase 0.6.x — Adapters

@@ -2,16 +2,22 @@
 
 ## [Unreleased]
 
+## [0.5.0]
+
 ### Added
-- GitHub Actions CI workflow for Python 3.11 and 3.12.
 
-## [0.5.0] - Local Streamlit GUI foundation
-
-### Planned
-- Local Streamlit-based GUI shell.
-- Workspace/project architecture.
-- Project manifest concept.
-- Dataset adapter architecture.
+- Workspace architecture
+- Project manifest
+- Dataset manifest
+- Workspace API
+- Project API
+- Dataset API
+- Manifest API
+- Adapter architecture
+- Unified internal data model
+- Streamlit GUI foundation
+- Git workflow documentation
+- GitHub Actions CI workflow for Python 3.11 and 3.12
 
 ## [0.4.8]
 

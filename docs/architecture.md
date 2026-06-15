@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the current and planned architecture of **tcr-sf-pb** (package name: `tcr-bcr-tools`).
+This document describes the architecture of **tcr-sf-pb** (package name: `tcr-bcr-tools`).
 
 ## Design principles
 
@@ -13,161 +13,214 @@ This document describes the current and planned architecture of **tcr-sf-pb** (p
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│              Local Streamlit GUI (in progress)              │
+│              Local Streamlit GUI                            │
 │         localhost:8501 · orchestration only                 │
 └──────────────────────────┬──────────────────────────────────┘
                            │
 ┌──────────────────────────▼──────────────────────────────────┐
-│                    Pipeline / CLI                           │
-│         composes analysis steps, writes outputs             │
+│              Workspace / Project / Dataset                  │
+│         manifests · settings · artifact directories         │
 └──────────────────────────┬──────────────────────────────────┘
                            │
 ┌──────────────────────────▼──────────────────────────────────┐
-│              Analysis modules (current)                     │
-│  detection curves · expansion · rank · ROC · deciles · …   │
+│                    Pipeline / CLI                           │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+┌──────────────────────────▼──────────────────────────────────┐
+│              Analysis modules                               │
 └──────────────────────────┬──────────────────────────────────┘
                            │
 ┌──────────────────────────▼──────────────────────────────────┐
 │                   Core library                              │
-│   clonotypes · detection table · metadata · I/O helpers     │
 └──────────────────────────┬──────────────────────────────────┘
                            │
 ┌──────────────────────────▼──────────────────────────────────┐
-│              Adapters (planned)                             │
-│   tenx · bdrhapsody · airr · custom → standard format       │
+│              Adapters                                       │
 └───────────────────────────────────────────────────────────────┘
 ```
 
-## Current modules (`src/tcr_bcr_tools/`)
+## Workspace
 
-| Module | Role |
-| --- | --- |
-| `extract_annotations` | Load and merge 10x-style contig annotation files |
-| `build_clonotypes` | Cell-level receptors and clone counts |
-| `build_detection_table` | Paired SF/blood detection table |
-| `detection_curves` | Empirical detection curves |
-| `bin_visualizations` | Per-bin target abundance plots |
-| `expansion_concordance` | Binary expansion concordance |
-| `threshold_sweep` | Expansion threshold sensitivity |
-| `rank_concordance` | Rank and percentile concordance |
-| `weighted_rank_concordance` | Weighted Spearman correlation |
-| `correlation_regression` | Continuous blood → SF regression |
-| `roc_auc_analysis` | Predict SF expansion from blood |
-| `decile_information` | Decile transition and information metrics |
-| `gui` | Local Streamlit shell (v0.5.0 foundation) |
-
-Supporting modules: `metadata`, `io`, `clone_bins`.
-
-## Local Streamlit GUI
-
-The GUI is a **local** application for bioinformatics workflows — not a hosted web service.
-
-```bash
-streamlit run src/tcr_bcr_tools/gui/app.py
-```
-
-Runs at `http://localhost:8501`.
-
-Current shell (`src/tcr_bcr_tools/gui/app.py`):
-
-- workspace path selection
-- project selector
-- create / open project placeholders
-- project overview, outputs list, logs placeholder
-
-**Rule:** the GUI must not contain analytical logic. It will call library functions and CLIs only.
-
-## Workspace layout (planned)
-
-A workspace groups shared datasets and multiple analysis projects:
+A **workspace** is the top-level directory for all local work. Implemented in `src/tcr_bcr_tools/project/workspace.py`.
 
 ```
 workspace/
     settings.yaml
-
     datasets/
-        GSE160097/
-            raw/
-            metadata.yaml
-
     projects/
-        JIA_GSE160097/
-            project.yaml
-            intermediate/
-            outputs/
-            figures/
-            logs/
-            cache/
+    cache/
+    logs/
 ```
 
-- **`settings.yaml`** — workspace-level defaults (paths, adapters, display options).
-- **`datasets/`** — shared raw data and metadata, reusable across projects.
-- **`projects/`** — one subdirectory per analysis.
+`Workspace` API:
 
-## Project principle
+- `load()` / `save()` — workspace settings
+- `list_projects()` / `list_datasets()`
+- `create_project()` / `create_dataset()`
+- `open_project()` / `open_dataset()`
 
-**Each analysis = one project.**
+## Projects
 
-Every project has its own:
+A **project** is one analysis. It references shared datasets but never stores a copy of raw data.
 
-| Path / file | Purpose |
-| --- | --- |
-| `project.yaml` | Manifest: dataset refs, pipeline steps, parameters |
-| `intermediate/` | Early pipeline tables |
-| `outputs/` | CSV summaries and result tables |
-| `figures/` | Plots |
-| `logs/` | Run logs |
-| `cache/` | Optional cached computations |
+```
+projects/JIA_Pilot/
+    project.yaml
+    outputs/
+    figures/
+    logs/
+    cache/
+```
 
-Datasets in `workspace/datasets/` may be shared by multiple projects. Project outputs are never committed to git.
+`Project` API:
+
+- `load()` / `save()`
+- `set_status()` / `get_status()`
+- `add_output()` / `add_figure()` / `add_log()`
+
+Example `project.yaml`:
+
+```yaml
+project:
+  name: JIA Pilot
+  description: Pilot analysis of GSE160097
+  created: 2026-06-16
+  modified: 2026-06-16
+tool:
+  version: 0.5.0
+datasets:
+  - GSE160097
+adapter: tenx
+analysis: detection
+status:
+  extract_annotations: done
+  paired_detection: done
+  roc_auc: pending
+```
+
+## Datasets
+
+A **dataset** is a shared study (e.g. GSE160097). Multiple projects may reference the same dataset.
+
+```
+datasets/GSE160097/
+    dataset.yaml
+    raw/
+    intermediate/
+```
+
+`Dataset` API:
+
+- `load()` / `save()`
+- `validate()`
+- `adapter()`
+
+Example `dataset.yaml`:
+
+```yaml
+dataset:
+  id: GSE160097
+  title: GSE160097
+  source: GEO
+  adapter: tenx
+  created: 2026-06-16
+files:
+  raw: raw/
+  intermediate: intermediate/
+```
 
 ## Adapters
 
-Adapters convert external formats into the **standard internal representation**. Analysis modules must not depend on the original file format.
+Adapters convert external formats into the unified internal model. Analysis modules must not read raw vendor files directly.
 
 ```
 src/tcr_bcr_tools/adapters/
-    tenx/          # 10x Genomics filtered_contig_annotations
-    bdrhapsody/    # BD Rhapsody
-    airr/          # AIRR rearrangement tables
-    custom/        # User-defined mappings
+    base.py
+    tenx/
+    bdrhapsody/
+    airr/
+    custom/
 ```
 
-Each adapter produces:
+`BaseAdapter` abstract methods:
 
-- combined annotation table
-- cell receptors
-- clone counts
-- paired detection table (via core pipeline)
+- `validate()`
+- `extract()`
+- `normalize()`
+- `metadata()`
 
-Downstream analysis modules consume only these standardized tables.
+Concrete adapter implementations will populate `datasets/<id>/intermediate/`.
 
-## Multi-dataset analyses (planned)
+## Unified internal model
 
-Independent studies can be combined after adapter normalization:
+All adapter output and downstream analyses use a single tabular schema (`UNIFIED_TABLE_COLUMNS` in `project/internal_model.py`):
+
+| Column | Description |
+| --- | --- |
+| `dataset_id` | Source dataset identifier |
+| `patient` | Patient id |
+| `sample` | Sample / library id |
+| `compartment` | blood, SF, etc. |
+| `cell_type` | CD4, CD8, Treg, … |
+| `barcode` | Cell barcode |
+| `clonotype_key` | Deterministic clone id |
+| `cdr3` | CDR3 amino acid sequence |
+| `chain` | TRA, TRB, … |
+| `v_gene`, `j_gene` | V/J gene assignments |
+| `umis`, `reads` | Expression support |
+| `fraction` | Relative clone abundance |
+
+Multi-dataset analyses combine standardized tables after adapter normalization:
 
 ```
-GSE160097
-    +
-future RA dataset
-    +
-future JIA dataset
+GSE160097 + future RA + future JIA
         ↓
 joint standardized clone table
         ↓
 common analysis pipeline
 ```
 
-Requirements:
+## Local Streamlit GUI
 
-- harmonized metadata schema (patient, compartment, cell type)
-- consistent `clonotype_key` definition
-- dataset identifier column for stratified analyses
+```bash
+streamlit run src/tcr_bcr_tools/gui/app.py
+```
 
-## Outputs
+The GUI displays workspace, project, dataset, and status. It calls `Workspace` / `Project` APIs only — **no analytical logic in the GUI**.
 
-Analysis results are written under project `outputs/` or workspace-level output directories. These files are **not versioned** in git.
+## Current analysis modules
+
+Legacy CLIs under `src/tcr_bcr_tools/` remain available. Future releases will route them through project manifests.
+
+## Git workflow
+
+| Rule | Value |
+| --- | --- |
+| Main branch | `main` |
+| Feature branches | `feature/x.y.z` (e.g. `feature/0.5.1`) |
+| Releases | annotated tag `vx.y.z` after merge |
+| CI | `.github/workflows/ci.yml` on every push/PR to `main` |
+
+Development flow:
+
+1. Create `feature/x.y.z` from `main`
+2. Implement per specification in `specifications/`
+3. Open pull request; CI must pass
+4. Merge to `main`
+5. Tag release: `git tag -a vx.y.z -m "Release vx.y.z"`
+
+## Release process
+
+1. Bump version in `pyproject.toml` and `src/tcr_bcr_tools/__init__.py`
+2. Update `CHANGELOG.md`
+3. Run `pytest` locally
+4. Merge to `main` and verify GitHub Actions
+5. Create annotated tag and push: `git push origin main --tags`
 
 ## Testing
 
-Unit tests live in `tests/` and mirror analysis modules. Integration tests use small synthetic fixtures only — no large datasets in the repository.
+Unit tests in `tests/` include `test_workspace.py`, `test_project.py`, and `test_dataset.py` for manifest and filesystem layout.
+
+## Outputs
+
+Project `outputs/`, `figures/`, and `logs/` are never committed to git.
