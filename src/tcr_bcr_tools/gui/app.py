@@ -1,4 +1,4 @@
-"""Minimal Streamlit shell for workspace and project management."""
+"""TCR SF/PB Analysis — local Streamlit workspace manager."""
 
 from __future__ import annotations
 
@@ -6,60 +6,62 @@ from pathlib import Path
 
 import streamlit as st
 
+from tcr_bcr_tools.gui.dataset_panel import render_dataset_panel
+from tcr_bcr_tools.gui.inspector_panel import render_inspector_panel
+from tcr_bcr_tools.gui.project_panel import render_project_panel
+from tcr_bcr_tools.gui.session_state import init_session_state
+from tcr_bcr_tools.gui.sidebar import render_sidebar
+from tcr_bcr_tools.gui.status_bar import render_status_bar
+from tcr_bcr_tools.gui.workspace_panel import render_workspace_panel
 from tcr_bcr_tools.project import Workspace
 
-DEFAULT_WORKSPACE = Path.home() / "tcr-sf-pb-workspace"
+
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parents[3]
 
 
 def main() -> None:
-    st.set_page_config(page_title="TCR SF/PB Analysis", layout="wide")
-    st.title("TCR SF/PB Analysis")
-
-    if "workspace_path" not in st.session_state:
-        st.session_state.workspace_path = str(DEFAULT_WORKSPACE)
-
-    workspace_path = st.sidebar.text_input(
-        "Workspace path",
-        value=st.session_state.workspace_path,
+    st.set_page_config(
+        page_title="TCR SF/PB Analysis",
+        layout="wide",
+        initial_sidebar_state="expanded",
     )
-    st.session_state.workspace_path = workspace_path
+    init_session_state(st.session_state)
 
-    workspace = Workspace(Path(workspace_path))
-    workspace.load()
+    st.title("TCR SF/PB Analysis")
+    render_sidebar()
 
-    projects = workspace.list_projects()
-    datasets = workspace.list_datasets()
-    default_project = workspace.settings.get("default_project", "")
-    default_dataset = workspace.settings.get("default_dataset", "")
+    workspace: Workspace = st.session_state.workspace
+    selected_project = st.session_state.selected_project
+    selected_dataset = st.session_state.selected_dataset
 
-    selected_project = default_project if default_project in projects else ""
-    if projects:
-        selected_project = st.sidebar.selectbox(
-            "Project",
-            options=projects,
-            index=projects.index(selected_project) if selected_project in projects else 0,
-        )
+    main_col, inspector_col = st.columns([2.2, 1])
 
-    st.markdown("**Workspace:**")
-    st.code(str(workspace.root))
-
-    st.markdown("**Project:**")
-    st.write(selected_project or "(none)")
-
-    st.markdown("**Dataset:**")
-    dataset_label = ", ".join(datasets) if datasets else default_dataset or "(none)"
-    st.write(dataset_label)
-
-    st.markdown("**Status:**")
-    if selected_project:
-        project = workspace.open_project(selected_project)
-        status = project.get_status()
-        if status:
-            st.json(status)
+    with main_col:
+        if st.session_state.get("show_settings"):
+            st.info("Settings panel — coming in a future release.")
+        elif st.session_state.get("show_logs"):
+            st.info("Application logs — coming in a future release.")
+        elif st.session_state.get("show_about"):
+            st.markdown("Local bioinformatics IDE for TCR SF/PB analysis.")
+        elif selected_dataset and not selected_project:
+            dataset = workspace.open_dataset(selected_dataset)
+            render_dataset_panel(dataset)
+        elif selected_project:
+            project = workspace.open_project(selected_project)
+            render_project_panel(project)
         else:
-            st.caption("No pipeline status recorded yet.")
-    else:
-        st.caption("Open a project to view status.")
+            render_workspace_panel(workspace)
+
+    with inspector_col:
+        render_inspector_panel(workspace, selected_project, selected_dataset)
+
+    render_status_bar(
+        st.session_state.workspace_path,
+        selected_project,
+        selected_dataset,
+        repo_root=_repo_root(),
+    )
 
 
 if __name__ == "__main__":

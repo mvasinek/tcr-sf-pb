@@ -3,7 +3,7 @@
 Python library for analyzing TCR/BCR repertoire overlap between peripheral blood and synovial fluid in single-cell experiments.
 
 **Repository:** [github.com/mvasinek/tcr-sf-pb](https://github.com/mvasinek/tcr-sf-pb)  
-**Current version:** 0.5.0  
+**Current version:** 0.5.1  
 **License:** MIT
 
 ---
@@ -187,6 +187,23 @@ pytest
 
 ---
 
+## Running GUI
+
+Local bioinformatics IDE at `http://localhost:8501`:
+
+```bash
+pip install -e .
+python -m streamlit run src/tcr_bcr_tools/gui/app.py
+```
+
+The GUI provides:
+
+- **Workspace** — open or create a workspace directory with shared `datasets/` and `projects/`
+- **Projects** — browse, create, open, and delete analysis projects
+- **Datasets** — register shared datasets with adapter metadata and raw directory paths
+
+Analytical modules are not launched from the GUI yet (planned for v0.5.2 Pipeline Runner).
+
 ## Local Streamlit GUI
 
 Local bioinformatics environment at `http://localhost:8501` (not a hosted web service).
@@ -241,9 +258,9 @@ workspace.create_project(
 - [x] Workspace layout (`settings.yaml`, `datasets/`, `projects/`)
 - [x] `Workspace`, `Project`, `Dataset` APIs
 - [x] `BaseAdapter` interface
-- [x] Streamlit GUI shell
+- [x] Streamlit workspace & project manager (v0.5.1)
+- [ ] Pipeline runner (v0.5.2)
 - [ ] Wire analyses to project manifests
-- [ ] Single-command pipeline runner
 
 ### Phase 0.6.x — Adapters
 

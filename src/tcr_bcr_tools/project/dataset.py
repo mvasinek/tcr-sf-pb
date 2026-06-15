@@ -17,7 +17,14 @@ def _default_dataset_manifest(
     title: str = "",
     source: str = "",
     adapter: str = "tenx",
+    raw_source: str = "",
 ) -> dict[str, Any]:
+    files: dict[str, str] = {
+        "raw": "raw/",
+        "intermediate": "intermediate/",
+    }
+    if raw_source:
+        files["raw_source"] = raw_source
     return {
         "dataset": {
             "id": dataset_id,
@@ -26,10 +33,7 @@ def _default_dataset_manifest(
             "adapter": adapter,
             "created": date.today().isoformat(),
         },
-        "files": {
-            "raw": "raw/",
-            "intermediate": "intermediate/",
-        },
+        "files": files,
     }
 
 
@@ -88,6 +92,29 @@ class Dataset:
             self.load()
         return str(self._data.get("dataset", {}).get("adapter", ""))
 
+    def raw_source_path(self) -> Path | None:
+        """Return external raw directory if registered."""
+        if not self._data:
+            self.load()
+        raw_source = self._data.get("files", {}).get("raw_source")
+        if not raw_source:
+            return None
+        return Path(raw_source)
+
+    def count_raw_files(self) -> int:
+        """Count files in raw directory or external raw source."""
+        source = self.raw_source_path()
+        target = source if source and source.exists() else self.raw_dir
+        if not target.is_dir():
+            return 0
+        return sum(1 for path in target.rglob("*") if path.is_file())
+
+    def metadata(self) -> dict[str, Any]:
+        """Return dataset metadata from manifest."""
+        if not self._data:
+            self.load()
+        return dict(self._data.get("dataset", {}))
+
     @classmethod
     def create(
         cls,
@@ -97,6 +124,7 @@ class Dataset:
         title: str = "",
         source: str = "",
         adapter: str = "tenx",
+        raw_source: str = "",
     ) -> Dataset:
         """Create a new dataset directory and manifest."""
         root = datasets_root / dataset_id
@@ -110,6 +138,7 @@ class Dataset:
             title=title,
             source=source,
             adapter=adapter,
+            raw_source=raw_source,
         )
         instance.save()
         return instance

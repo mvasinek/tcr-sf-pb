@@ -92,6 +92,42 @@ class Project:
             return dict(status)
         return str(status.get(step, ""))
 
+    def manifest(self) -> dict[str, Any]:
+        """Return full project manifest data."""
+        if not self._data:
+            self.load()
+        return self._data
+
+    def list_output_files(self) -> list[str]:
+        """List relative paths of files under outputs/."""
+        if not self.outputs_dir.is_dir():
+            return []
+        return sorted(
+            str(path.relative_to(self.outputs_dir))
+            for path in self.outputs_dir.rglob("*")
+            if path.is_file()
+        )
+
+    def list_figure_files(self) -> list[str]:
+        """List relative paths of files under figures/."""
+        if not self.figures_dir.is_dir():
+            return []
+        return sorted(
+            str(path.relative_to(self.figures_dir))
+            for path in self.figures_dir.rglob("*")
+            if path.is_file()
+        )
+
+    def list_log_files(self) -> list[str]:
+        """List relative paths of files under logs/."""
+        if not self.logs_dir.is_dir():
+            return []
+        return sorted(
+            str(path.relative_to(self.logs_dir))
+            for path in self.logs_dir.rglob("*")
+            if path.is_file()
+        )
+
     def add_output(self, relative_path: str, content: str = "") -> Path:
         """Create or register a file under outputs/."""
         self.outputs_dir.mkdir(parents=True, exist_ok=True)

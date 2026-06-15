@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -118,21 +120,60 @@ class Workspace:
         title: str = "",
         source: str = "",
         adapter: str = "tenx",
+        raw_directory: Path | str | None = None,
     ) -> Dataset:
         """Create a new shared dataset."""
         if not self._settings:
             self.load()
+        raw_source = ""
+        if raw_directory:
+            raw_source = str(Path(raw_directory).expanduser().resolve())
         dataset = Dataset.create(
             self.datasets_dir,
             dataset_id,
-            title=title,
+            title=title or dataset_id,
             source=source,
             adapter=adapter,
+            raw_source=raw_source,
         )
         if not self._settings.get("default_dataset"):
             self._settings["default_dataset"] = dataset_id
             self.save()
         return dataset
+
+    def register_dataset(
+        self,
+        dataset_id: str,
+        *,
+        source: str = "",
+        adapter: str = "tenx",
+        raw_directory: Path | str | None = None,
+    ) -> Dataset:
+        """Register a dataset with optional external raw directory."""
+        return self.create_dataset(
+            dataset_id,
+            source=source,
+            adapter=adapter,
+            raw_directory=raw_directory,
+        )
+
+    def delete_project(self, project_id: str) -> None:
+        """Delete a project directory and manifest."""
+        if not self._settings:
+            self.load()
+        project_root = self.projects_dir / project_id
+        if project_root.exists():
+            shutil.rmtree(project_root)
+        if self._settings.get("default_project") == project_id:
+            self._settings["default_project"] = ""
+            self.save()
+
+    @staticmethod
+    def slugify_project_id(name: str) -> str:
+        """Convert a display name to a filesystem-safe project id."""
+        slug = re.sub(r"[^\w\s-]", "", name.strip())
+        slug = re.sub(r"[\s-]+", "_", slug)
+        return slug or "project"
 
     def open_project(self, project_id: str) -> Project:
         """Open an existing project by id."""

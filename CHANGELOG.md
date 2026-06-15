@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+## [0.5.1]
+
+### Added
+
+- Streamlit workspace manager
+- Project browser
+- Dataset browser
+- Workspace overview
+- Project overview
+- Dataset overview
+- Project creation dialog
+- Dataset registration dialog
+- Inspector panel
+- Status bar
+- Git information panel
+
 ## [0.5.0]
 
 ### Added
