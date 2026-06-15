@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- GitHub Actions CI workflow for Python 3.11 and 3.12.
+
 ## [0.5.0] - Local Streamlit GUI foundation
 
 ### Planned

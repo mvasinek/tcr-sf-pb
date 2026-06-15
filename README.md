@@ -238,6 +238,12 @@ common analysis pipeline
 
 ---
 
+## Continuous integration
+
+The repository uses GitHub Actions to run the test suite on Python 3.11 and 3.12 for every push and pull request to `main`.
+
+---
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
