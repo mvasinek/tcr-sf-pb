@@ -113,7 +113,9 @@ datasets/GSE160097/
 
 - `load()` / `save()`
 - `validate()`
-- `adapter()`
+- `adapter()` / `get_adapter()`
+- `validate_with_adapter()` / `normalize_with_adapter()`
+- `has_unified_annotations()`
 
 Example `dataset.yaml`:
 
@@ -131,44 +133,66 @@ files:
 
 ## Adapters
 
-Adapters convert external formats into the unified internal model. Analysis modules must not read raw vendor files directly.
+Adapters convert external formats into the unified annotation schema. Analysis modules must not read raw vendor files directly.
+
+```
+Raw data → Adapter → Unified schema → Pipeline → Results
+```
 
 ```
 src/tcr_bcr_tools/adapters/
     base.py
+    registry.py
+    schema.py
+    validation.py
+    run_adapter.py
     tenx/
     bdrhapsody/
     airr/
     custom/
 ```
 
-`BaseAdapter` abstract methods:
+`BaseAdapter` methods:
 
-- `validate()`
-- `extract()`
-- `normalize()`
-- `metadata()`
+- `validate_input(dataset_path)` — check raw inputs
+- `extract_metadata(file_path)` — parse per-file metadata
+- `normalize(dataset_path, output_path)` — write `unified_annotations.csv`
+- `get_output_schema()` — required unified columns
 
-Concrete adapter implementations will populate `datasets/<id>/intermediate/`.
+`Adapter` registry:
 
-## Unified internal model
+- `register_adapter()` / `get_adapter()` / `list_adapters()`
 
-All adapter output and downstream analyses use a single tabular schema (`UNIFIED_TABLE_COLUMNS` in `project/internal_model.py`):
+Dataset integration (`Dataset` API):
+
+- `get_adapter()` — resolve adapter from `dataset.yaml`
+- `validate_with_adapter()` — validate raw files
+- `normalize_with_adapter()` — write `intermediate/unified_annotations.csv` and `adapter_report.yaml`
+
+## Unified annotation schema
+
+All adapter output uses `REQUIRED_COLUMNS` in `adapters/schema.py` (written to `datasets/<id>/intermediate/unified_annotations.csv`):
 
 | Column | Description |
 | --- | --- |
 | `dataset_id` | Source dataset identifier |
+| `source_file` | Original input filename |
+| `sample_id` | Sample / GSM id |
 | `patient` | Patient id |
-| `sample` | Sample / library id |
+| `sample_group` | Sample group (e.g. PM1) |
 | `compartment` | blood, SF, etc. |
 | `cell_type` | CD4, CD8, Treg, … |
 | `barcode` | Cell barcode |
-| `clonotype_key` | Deterministic clone id |
-| `cdr3` | CDR3 amino acid sequence |
+| `contig_id` | Contig identifier |
 | `chain` | TRA, TRB, … |
-| `v_gene`, `j_gene` | V/J gene assignments |
+| `v_gene`, `d_gene`, `j_gene`, `c_gene` | Gene assignments |
+| `cdr3`, `cdr3_nt` | CDR3 sequence |
+| `productive`, `full_length`, `high_confidence`, `is_cell` | QC flags |
 | `umis`, `reads` | Expression support |
-| `fraction` | Relative clone abundance |
+| `raw_clonotype_id`, `raw_consensus_id` | Platform clone ids |
+| `adapter_name`, `adapter_version` | Provenance |
+
+Optional columns: `platform`, `study_id`, `disease`, `tissue`, `timepoint`, `condition`, `batch`, `library_id`.
 
 Multi-dataset analyses combine standardized tables after adapter normalization:
 
@@ -179,6 +203,8 @@ joint standardized clone table
         ↓
 common analysis pipeline
 ```
+
+Legacy `UNIFIED_TABLE_COLUMNS` in `project/internal_model.py` remains for downstream clone-level summaries.
 
 ## Local Streamlit GUI
 

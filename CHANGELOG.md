@@ -2,6 +2,26 @@
 
 ## [Unreleased]
 
+## [0.5.3]
+
+### Added
+
+- Adapter framework.
+- BaseAdapter abstraction.
+- Adapter registry.
+- Unified annotation schema.
+- TenX adapter implementation.
+- Dataset validation through adapters.
+- Dataset normalization through adapters.
+- Adapter report output.
+- Adapter CLI.
+- Streamlit dataset validation and normalization controls.
+
+### Changed
+
+- Pipeline extraction step now uses dataset adapter normalization.
+- Legacy direct extraction remains available for backward compatibility.
+
 ## [0.5.2]
 
 ### Added

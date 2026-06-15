@@ -194,8 +194,10 @@ def build_clonotype_tables(
     clone_output: Path,
     paired_only: bool = False,
 ) -> None:
-    """Load combined annotations and write cell receptor and clone count tables."""
-    df = pd.read_csv(input_path)
+    """Load combined or unified annotations and write cell receptor and clone count tables."""
+    from tcr_bcr_tools.adapters.schema import ensure_legacy_annotation_columns
+
+    df = ensure_legacy_annotation_columns(pd.read_csv(input_path))
     cell_receptors = build_cell_receptors(df)
     clone_counts = build_clone_counts(cell_receptors, paired_only=paired_only)
 

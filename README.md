@@ -35,12 +35,12 @@ Specific questions addressed in v0.4.x:
 ## Architecture
 
 ```
-Adapters (planned)  →  Core library  →  Analysis modules  →  Pipeline/CLI  →  GUI (planned)
+Raw data → Adapters → unified_annotations.csv → Pipeline/CLI → Analysis modules → GUI
 ```
 
 | Layer | Status | Description |
 | --- | --- | --- |
-| **Adapters** | Planned | Convert 10x, BD Rhapsody, AIRR, custom inputs to standard tables |
+| **Adapters** | Implemented (TenX) | Convert 10x, BD Rhapsody, AIRR, custom inputs to unified schema |
 | **Core library** | Implemented | Annotation extraction, clonotypes, paired detection table |
 | **Analysis modules** | Implemented | Detection curves, expansion, rank, regression, ROC, deciles |
 | **Pipeline** | Partial (CLI) | Each module has `python -m tcr_bcr_tools.<module>` entry point |
@@ -56,7 +56,7 @@ See [docs/architecture.md](docs/architecture.md) for details.
 ```
 annotations.csv.gz
         ↓
-combined_annotations.csv          (0.1.0)
+unified_annotations.csv           (0.5.3, via adapter)
         ↓
 cell_receptors.csv                (0.2.0)
 clone_counts.csv
@@ -204,6 +204,34 @@ The GUI provides:
 
 Analytical steps run through the **Pipeline Runner** — the GUI orchestrates execution but does not contain analytical logic.
 
+## Adapter framework
+
+Adapters convert vendor-specific raw data into a single **unified annotation schema** (`unified_annotations.csv`). Analysis modules never read 10x-specific columns directly.
+
+```text
+10x / BD / AIRR / custom  →  adapter  →  unified_annotations.csv  →  pipeline
+```
+
+**Preferred workflow** (dataset in a workspace):
+
+```bash
+python -m tcr_bcr_tools.adapters.run_adapter \
+  --adapter tenx \
+  --dataset ./workspace/datasets/GSE160097
+```
+
+Or via the pipeline runner step `extract_annotations`, which calls `Dataset.normalize_with_adapter()`.
+
+**Legacy direct extraction** (still supported):
+
+```bash
+python -m tcr_bcr_tools.extract_annotations \
+  --input-dir ./data \
+  --output ./outputs/combined_annotations.csv
+```
+
+To add a new adapter, subclass `BaseAdapter`, implement `validate_input()` and `normalize()`, and register it in `adapters/registry.py`.
+
 ## Pipeline Runner
 
 The pipeline layer (`src/tcr_bcr_tools/pipeline/`) provides a GUI-independent execution engine:
@@ -288,11 +316,12 @@ workspace.create_project(
 - [x] `BaseAdapter` interface
 - [x] Streamlit workspace & project manager (v0.5.1)
 - [x] Pipeline runner (v0.5.2)
-- [ ] Wire adapters to project manifests
+- [x] Adapter framework and TenX adapter (v0.5.3)
+- [ ] Wire adapters for BD Rhapsody, AIRR, custom
 
 ### Phase 0.6.x — Adapters
 
-- [ ] 10x adapter (`src/tcr_bcr_tools/adapters/tenx/`)
+- [x] TenX adapter (`src/tcr_bcr_tools/adapters/tenx/`)
 - [ ] BD Rhapsody adapter
 - [ ] AIRR adapter
 - [ ] Custom adapter template

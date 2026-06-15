@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
+import pandas as pd
+
+from tcr_bcr_tools.adapters.base import AdapterValidationResult, BaseAdapter
+from tcr_bcr_tools.adapters.report import write_adapter_report
+from tcr_bcr_tools.adapters.schema import UNIFIED_ANNOTATIONS_FILE
 from tcr_bcr_tools.project.manifest import load_yaml, save_yaml
 
 DATASET_MANIFEST = "dataset.yaml"
@@ -91,6 +96,49 @@ class Dataset:
         if not self._data:
             self.load()
         return str(self._data.get("dataset", {}).get("adapter", ""))
+
+    def get_adapter(self) -> type[BaseAdapter]:
+        """Return the registered adapter class for this dataset."""
+        from tcr_bcr_tools.adapters.registry import get_adapter
+
+        return get_adapter(self.adapter())
+
+    def validate_with_adapter(self) -> AdapterValidationResult:
+        """Validate raw inputs using the dataset adapter."""
+        return self.get_adapter().validate_input(self.root)
+
+    def normalize_with_adapter(self, output_path: Path | None = None) -> Path:
+        """Normalize raw inputs to unified_annotations.csv via the adapter."""
+        adapter_cls = self.get_adapter()
+        started = datetime.now().isoformat(timespec="seconds")
+        validation = adapter_cls.validate_input(self.root)
+        if not validation.valid:
+            raise ValueError("; ".join(validation.errors))
+
+        output = output_path or self.intermediate_dir / UNIFIED_ANNOTATIONS_FILE
+        adapter_cls.normalize(self.root, output, dataset_id=self.dataset_id)
+        df = pd.read_csv(output)
+        finished = datetime.now().isoformat(timespec="seconds")
+        write_adapter_report(
+            self.root,
+            adapter_name=adapter_cls.name,
+            adapter_version=adapter_cls.version,
+            started=started,
+            finished=finished,
+            status="completed",
+            detected_files=validation.detected_files,
+            output_path=output,
+            df=df,
+        )
+        return output
+
+    def unified_annotations_path(self) -> Path:
+        """Return path to unified annotation output."""
+        return self.intermediate_dir / UNIFIED_ANNOTATIONS_FILE
+
+    def has_unified_annotations(self) -> bool:
+        """Return True when unified_annotations.csv exists."""
+        return self.unified_annotations_path().is_file()
 
     def raw_source_path(self) -> Path | None:
         """Return external raw directory if registered."""

@@ -11,7 +11,7 @@ from tcr_bcr_tools.correlation_regression import run_correlation_regression
 from tcr_bcr_tools.decile_information import run_decile_information_analysis
 from tcr_bcr_tools.detection_curves import run_detection_curve_analysis
 from tcr_bcr_tools.expansion_concordance import run_expansion_concordance_analysis
-from tcr_bcr_tools.extract_annotations import combine_annotation_files
+from tcr_bcr_tools.adapters.schema import UNIFIED_ANNOTATIONS_FILE, ensure_legacy_annotation_columns
 from tcr_bcr_tools.pipeline.step import PipelineContext, PipelineStep
 from tcr_bcr_tools.rank_concordance import run_rank_concordance
 from tcr_bcr_tools.roc_auc_analysis import run_roc_auc_cli
@@ -68,13 +68,13 @@ def _collect_dir_outputs(workspace_root: Path, output_dir: Path) -> dict[str, li
 
 
 def _run_extract_annotations(ctx: PipelineContext) -> dict[str, list[str]]:
-    output_path = ctx.intermediate_dir / "combined_annotations.csv"
-    combine_annotation_files(ctx.raw_input_dir(), output_path)
-    return _paths_from_files(ctx.workspace.root, output_path)
+    output_path = ctx.dataset.normalize_with_adapter()
+    report_path = ctx.intermediate_dir / "adapter_report.yaml"
+    return _paths_from_files(ctx.workspace.root, output_path, report_path)
 
 
 def _run_build_unified_table(ctx: PipelineContext) -> dict[str, list[str]]:
-    input_path = ctx.intermediate_dir / "combined_annotations.csv"
+    input_path = ctx.intermediate_dir / UNIFIED_ANNOTATIONS_FILE
     cell_output = ctx.intermediate_dir / "cell_receptors.csv"
     clone_output = ctx.intermediate_dir / "clone_counts.csv"
     build_clonotype_tables(input_path, cell_output, clone_output)
@@ -149,7 +149,7 @@ def _build_registry() -> dict[str, PipelineStep]:
         PipelineStep(
             id="extract_annotations",
             name="Extract annotations",
-            description="Combine per-sample contig annotation files into one table.",
+            description="Normalize raw dataset inputs to unified_annotations.csv via adapter.",
             version=__version__,
             dependencies=[],
             callable=_run_extract_annotations,
