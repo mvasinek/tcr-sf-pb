@@ -35,7 +35,7 @@ Specific questions addressed in v0.4.x:
 ## Architecture
 
 ```
-Raw data → Adapters → unified_annotations.csv → Pipeline/CLI → Analysis modules → GUI
+Raw dataset → Adapter → Unified schema → Validation Framework → Pipeline Runner → Analysis modules → Reports
 ```
 
 | Layer | Status | Description |
@@ -231,6 +231,32 @@ python -m tcr_bcr_tools.extract_annotations \
 ```
 
 To add a new adapter, subclass `BaseAdapter`, implement `validate_input()` and `normalize()`, and register it in `adapters/registry.py`.
+
+## Data Validation
+
+The validation framework (`src/tcr_bcr_tools/validation/`) is the pipeline gatekeeper. It runs after adapter normalization and before analysis steps.
+
+| Severity | Pipeline behavior |
+| --- | --- |
+| INFO | Continue |
+| WARNING | Continue |
+| ERROR | User must confirm to continue |
+| CRITICAL | Pipeline stops |
+
+**Validation score** is a 0–100 summary (e.g. `98/100`) based on failed rules and severity penalties.
+
+```bash
+python -m tcr_bcr_tools.validation.validator --dataset ./workspace/datasets/GSE160097
+```
+
+Reports are written to:
+
+```text
+dataset/intermediate/validation_report.yaml
+dataset/intermediate/validation_summary.json
+```
+
+In Streamlit, open a dataset and use the **Data Validation** panel to run validation, inspect rules, quality metrics, and Plotly charts. The pipeline panel provides **Continue anyway** when only ERROR-level issues are present.
 
 ## Pipeline Runner
 

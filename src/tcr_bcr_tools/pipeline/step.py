@@ -32,6 +32,7 @@ class PipelineContext:
     outputs_dir: Path
     figures_dir: Path
     logs_dir: Path
+    repo_root: Path | None = None
 
     def raw_input_dir(self) -> Path:
         """Return external raw source or dataset raw directory."""

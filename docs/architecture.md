@@ -206,6 +206,28 @@ common analysis pipeline
 
 Legacy `UNIFIED_TABLE_COLUMNS` in `project/internal_model.py` remains for downstream clone-level summaries.
 
+## Validation framework
+
+Centralized quality control in `src/tcr_bcr_tools/validation/`:
+
+- `ValidationRule` — pluggable rule with severity (`INFO`, `WARNING`, `ERROR`, `CRITICAL`)
+- `ValidationReport` — serializable YAML report with Git metadata
+- `DatasetValidator` — runs all rules against `unified_annotations.csv`
+- `Dataset.validate()` — dataset API entry point
+
+Pipeline integration:
+
+- `validate_dataset` is the first pipeline step
+- All downstream steps depend on `validate_dataset`
+- `PipelineRunner.check_validation_gate()` blocks execution on CRITICAL issues or ERROR issues without user confirmation
+
+Outputs:
+
+```text
+datasets/<id>/intermediate/validation_report.yaml
+datasets/<id>/intermediate/validation_summary.json
+```
+
 ## Local Streamlit GUI
 
 ```bash

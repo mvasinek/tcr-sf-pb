@@ -27,6 +27,7 @@ from tcr_bcr_tools.pipeline.step import (
 from tcr_bcr_tools.project.dataset import Dataset
 from tcr_bcr_tools.project.project import Project
 from tcr_bcr_tools.project.workspace import Workspace
+from tcr_bcr_tools.validation.validator import ValidationGateError, report_allows_pipeline
 
 
 class DependencyError(Exception):
@@ -49,11 +50,13 @@ class PipelineRunner:
         project: Project,
         *,
         force_recompute: bool = False,
+        ignore_validation_errors: bool = False,
         repo_root: Path | None = None,
     ) -> None:
         self.workspace = workspace
         self.project = project
         self.force_recompute = force_recompute
+        self.ignore_validation_errors = ignore_validation_errors
         self.repo_root = repo_root
         self.registry = get_registry()
 
@@ -73,6 +76,19 @@ class PipelineRunner:
             outputs_dir=self.project.outputs_dir,
             figures_dir=self.project.figures_dir,
             logs_dir=self.project.logs_dir,
+            repo_root=self.repo_root,
+        )
+
+    def check_validation_gate(self, step_id: str) -> tuple[bool, str]:
+        """Return whether dataset validation allows running a pipeline step."""
+        if step_id == "validate_dataset":
+            return True, ""
+        report = self._dataset().load_validation_report()
+        if report is None:
+            return False, "Dataset has not been validated. Run validate_dataset first."
+        return report_allows_pipeline(
+            report,
+            ignore_errors=self.ignore_validation_errors,
         )
 
     def load_history(self) -> list[dict[str, Any]]:
@@ -146,6 +162,11 @@ class PipelineRunner:
 
     def run_step(self, step_id: str) -> dict[str, Any]:
         """Run one pipeline step."""
+        allowed, reason = self.check_validation_gate(step_id)
+        if not allowed:
+            self._log(step_id, "ERROR", reason)
+            raise ValidationGateError(reason)
+
         step = get_step(step_id)
         ok, missing = self.validate_dependencies(step_id)
         if not ok:

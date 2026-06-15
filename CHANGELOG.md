@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+## [0.5.4]
+
+### Added
+
+- Centralized validation framework.
+- ValidationRule abstraction.
+- ValidationReport model.
+- Dataset quality scoring.
+- Dataset validation dashboard.
+- Quality metrics visualization.
+- Validation pipeline step.
+- Validation report serialization.
+- Pipeline validation gate.
+
 ## [0.5.3]
 
 ### Added

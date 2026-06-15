@@ -22,13 +22,13 @@ def test_dataset_validate_success(tmp_path: Path) -> None:
     workspace.load()
     dataset = workspace.create_dataset("GSE160097")
 
-    errors = dataset.validate()
+    errors = dataset.validate_layout()
     assert errors == []
 
 
 def test_dataset_validate_missing_manifest(tmp_path: Path) -> None:
     dataset = Dataset(tmp_path / "GSE160097", "GSE160097")
-    errors = dataset.validate()
+    errors = dataset.validate_layout()
     assert any("Missing manifest" in error for error in errors)
 
 

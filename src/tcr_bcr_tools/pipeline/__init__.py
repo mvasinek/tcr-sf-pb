@@ -8,7 +8,7 @@ from tcr_bcr_tools.pipeline.history import (
     save_history,
 )
 from tcr_bcr_tools.pipeline.registry import STEP_ORDER, get_registry, get_step, list_steps
-from tcr_bcr_tools.pipeline.runner import DependencyError, PipelineRunner
+from tcr_bcr_tools.pipeline.runner import DependencyError, ValidationGateError, PipelineRunner
 from tcr_bcr_tools.pipeline.step import (
     COMPLETED,
     FAILED,
@@ -26,6 +26,7 @@ __all__ = [
     "RUNNING",
     "SKIPPED",
     "DependencyError",
+    "ValidationGateError",
     "PipelineContext",
     "PipelineRunner",
     "PipelineStep",

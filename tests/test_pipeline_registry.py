@@ -6,6 +6,7 @@ from tcr_bcr_tools.pipeline.registry import STEP_ORDER, get_registry, get_step, 
 def test_registry_contains_expected_steps() -> None:
     registry = get_registry()
     expected = {
+        "validate_dataset",
         "extract_annotations",
         "build_unified_table",
         "build_detection_table",
@@ -37,6 +38,7 @@ def test_dependency_chain() -> None:
     unified = get_step("build_unified_table")
     detection = get_step("build_detection_table")
     weighted = get_step("weighted_rank")
-    assert unified.dependencies == ["extract_annotations"]
-    assert detection.dependencies == ["build_unified_table"]
-    assert weighted.dependencies == ["rank_concordance"]
+    assert "validate_dataset" in unified.dependencies
+    assert unified.dependencies[-1] == "extract_annotations"
+    assert "validate_dataset" in detection.dependencies
+    assert weighted.dependencies[-1] == "rank_concordance"

@@ -11,7 +11,7 @@ from tcr_bcr_tools.gui.constants import LOG_LEVEL_FILTERS
 from tcr_bcr_tools.gui.helpers import format_status
 from tcr_bcr_tools.pipeline.history import load_history
 from tcr_bcr_tools.pipeline import PipelineRunner, read_pipeline_log
-from tcr_bcr_tools.pipeline.runner import DependencyError
+from tcr_bcr_tools.pipeline.runner import DependencyError, ValidationGateError
 from tcr_bcr_tools.project import Project, Workspace
 
 
@@ -29,10 +29,16 @@ def render_pipeline_panel(
         value=bool(st.session_state.get("force_recompute")),
         key="force_recompute",
     )
+    continue_anyway = st.checkbox(
+        "Continue anyway (ignore validation errors)",
+        value=bool(st.session_state.get("ignore_validation_errors")),
+        key="ignore_validation_errors",
+    )
     runner = PipelineRunner(
         workspace,
         project,
         force_recompute=force_recompute,
+        ignore_validation_errors=continue_anyway,
         repo_root=_repo_root(),
     )
     states = runner.step_states()
@@ -93,6 +99,8 @@ def _run_single_step(runner: PipelineRunner, step_id: str) -> None:
             else:
                 st.success(f"Completed {step_id}")
         except DependencyError as exc:
+            st.error(str(exc))
+        except ValidationGateError as exc:
             st.error(str(exc))
 
 

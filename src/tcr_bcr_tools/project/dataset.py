@@ -68,8 +68,8 @@ class Dataset:
         """Persist dataset manifest to disk."""
         save_yaml(self.manifest_path, self._data)
 
-    def validate(self) -> list[str]:
-        """Return validation errors; empty list means valid."""
+    def validate_layout(self) -> list[str]:
+        """Return filesystem layout errors; empty list means valid layout."""
         errors: list[str] = []
         if not self.manifest_path.exists():
             errors.append(f"Missing manifest: {self.manifest_path}")
@@ -90,6 +90,120 @@ class Dataset:
             errors.append(f"Missing intermediate directory: {self.intermediate_dir}")
 
         return errors
+
+    def validate(self, repo_root: Path | None = None) -> Any:
+        """Run quality validation and write validation reports."""
+        from tcr_bcr_tools.validation.report import (
+            VALIDATION_REPORT_FILE,
+            VALIDATION_SUMMARY_FILE,
+            ValidationReport,
+            ValidationResult,
+            save_validation_report,
+        )
+        from tcr_bcr_tools.validation.severity import Severity
+        from tcr_bcr_tools.validation.summary import ValidationSummary
+        from tcr_bcr_tools.validation.validator import (
+            DatasetValidator,
+            save_validation_summary,
+        )
+        from tcr_bcr_tools import __version__
+        from tcr_bcr_tools.git_info import get_git_summary
+
+        layout_errors = self.validate_layout()
+        if layout_errors:
+            git = get_git_summary(repo_root)
+            report = ValidationReport(
+                dataset_id=self.dataset_id,
+                adapter=self.adapter(),
+                timestamp=datetime.now().isoformat(timespec="seconds"),
+                tool_version=__version__,
+                git_branch=git.get("branch", "unknown"),
+                git_commit=git.get("commit", "unknown"),
+                git_tag=git.get("tag", "unknown"),
+                results=[
+                    ValidationResult(
+                        rule_id="dataset_layout",
+                        severity=Severity.CRITICAL,
+                        passed=False,
+                        message="; ".join(layout_errors),
+                    )
+                ],
+                summary=ValidationSummary(
+                    passed=0,
+                    failed=1,
+                    warnings=0,
+                    errors=0,
+                    critical=1,
+                    score=0,
+                ),
+            )
+            self._persist_validation(report)
+            return report
+
+        if not self.has_unified_annotations():
+            self.normalize_with_adapter()
+
+        adapter_cls = self.get_adapter()
+        df = pd.read_csv(self.unified_annotations_path())
+        validator = DatasetValidator()
+        report = validator.run(
+            dataset_id=self.dataset_id,
+            adapter=adapter_cls.name,
+            adapter_version=adapter_cls.version,
+            df=df,
+            repo_root=repo_root,
+        )
+        report_path = self.intermediate_dir / VALIDATION_REPORT_FILE
+        summary_path = self.intermediate_dir / VALIDATION_SUMMARY_FILE
+        save_validation_report(report, report_path)
+        save_validation_summary(report, summary_path)
+        self._persist_validation(report)
+        return report
+
+    def _persist_validation(self, report: Any) -> None:
+        if not self._data:
+            self.load()
+        self._data["validation"] = {
+            "timestamp": report.timestamp,
+            "score": report.summary.score,
+            "valid": report.summary.critical == 0 and report.summary.errors == 0,
+            "passed": report.summary.passed,
+            "warnings": report.summary.warnings,
+            "errors": report.summary.errors,
+            "critical": report.summary.critical,
+        }
+        self.save()
+
+    def is_valid(self) -> bool:
+        """Return True when the latest validation has no errors or critical issues."""
+        summary = self.last_validation()
+        if not summary:
+            return False
+        return bool(summary.get("valid"))
+
+    def validation_score(self) -> int:
+        """Return the latest validation score (0-100)."""
+        summary = self.last_validation()
+        return int(summary.get("score", 0)) if summary else 0
+
+    def last_validation(self) -> dict[str, Any]:
+        """Return the latest validation summary from the manifest."""
+        if not self._data:
+            self.load()
+        validation = self._data.get("validation", {})
+        return dict(validation) if isinstance(validation, dict) else {}
+
+    def load_validation_report(self) -> Any:
+        """Load the latest validation report from disk."""
+        from tcr_bcr_tools.validation.report import (
+            VALIDATION_REPORT_FILE,
+            load_validation_report,
+        )
+
+        path = self.intermediate_dir / VALIDATION_REPORT_FILE
+        if not path.exists():
+            return None
+        return load_validation_report(path)
 
     def adapter(self) -> str:
         """Return the adapter name for this dataset."""

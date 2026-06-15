@@ -96,7 +96,8 @@ def test_build_status_rows() -> None:
             "decile_information": "failed",
         }
     )
-    assert rows[0]["display"] == "✔"
+    extract_row = next(row for row in rows if row["step_key"] == "extract_annotations")
+    assert extract_row["display"] == "✔"
     roc_row = next(row for row in rows if row["step_key"] == "roc_auc")
     assert roc_row["status"] == "pending"
     decile_row = next(row for row in rows if row["step_key"] == "decile_information")

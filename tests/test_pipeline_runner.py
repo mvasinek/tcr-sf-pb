@@ -7,7 +7,7 @@ import pytest
 
 from tcr_bcr_tools.pipeline import PipelineRunner
 from tcr_bcr_tools.pipeline.history import load_history, read_pipeline_log
-from tcr_bcr_tools.pipeline.runner import DependencyError
+from tcr_bcr_tools.pipeline.runner import DependencyError, ValidationGateError
 from tcr_bcr_tools.pipeline.step import COMPLETED, SKIPPED
 from tcr_bcr_tools.project import Workspace
 from tcr_bcr_tools.project.manifest import load_yaml
@@ -95,19 +95,20 @@ def test_validate_dependencies(pipeline_workspace) -> None:
     runner = PipelineRunner(workspace, project)
     ok, missing = runner.validate_dependencies("build_unified_table")
     assert ok is False
-    assert missing == ["extract_annotations"]
+    assert "validate_dataset" in missing
 
 
 def test_dependency_error_on_run_step(pipeline_workspace) -> None:
     workspace, project = pipeline_workspace
     runner = PipelineRunner(workspace, project)
-    with pytest.raises(DependencyError):
+    with pytest.raises(ValidationGateError):
         runner.run_step("build_detection_table")
 
 
 def test_run_extract_annotations(pipeline_workspace) -> None:
     workspace, project = pipeline_workspace
     runner = PipelineRunner(workspace, project, repo_root=Path(__file__).resolve().parents[1])
+    runner.run_step("validate_dataset")
     result = runner.run_step("extract_annotations")
     assert result["status"] == COMPLETED
     assert result["outputs"]["csv"]
@@ -124,6 +125,7 @@ def test_run_extract_annotations(pipeline_workspace) -> None:
 def test_skip_completed_step(pipeline_workspace) -> None:
     workspace, project = pipeline_workspace
     runner = PipelineRunner(workspace, project, repo_root=Path(__file__).resolve().parents[1])
+    runner.run_step("validate_dataset")
     first = runner.run_step("extract_annotations")
     assert first["status"] == COMPLETED
     second = runner.run_step("extract_annotations")
@@ -133,6 +135,7 @@ def test_skip_completed_step(pipeline_workspace) -> None:
 def test_force_recompute(pipeline_workspace) -> None:
     workspace, project = pipeline_workspace
     runner = PipelineRunner(workspace, project, repo_root=Path(__file__).resolve().parents[1])
+    runner.run_step("validate_dataset")
     runner.run_step("extract_annotations")
     forced = PipelineRunner(
         workspace,
@@ -158,15 +161,16 @@ def test_needs_recompute_missing_outputs(pipeline_workspace) -> None:
 def test_run_pipeline_skips_completed(pipeline_workspace) -> None:
     workspace, project = pipeline_workspace
     runner = PipelineRunner(workspace, project, repo_root=Path(__file__).resolve().parents[1])
-    runner.run_step("extract_annotations")
+    runner.run_step("validate_dataset")
     results = runner.run()
     assert results[0]["status"] == SKIPPED
-    assert results[0]["step_id"] == "extract_annotations"
+    assert results[0]["step_id"] == "validate_dataset"
 
 
 def test_output_registry_load(pipeline_workspace) -> None:
     workspace, project = pipeline_workspace
     runner = PipelineRunner(workspace, project, repo_root=Path(__file__).resolve().parents[1])
+    runner.run_step("validate_dataset")
     runner.run_step("extract_annotations")
     registry = project.get_output_registry()
     assert "extract_annotations" in registry

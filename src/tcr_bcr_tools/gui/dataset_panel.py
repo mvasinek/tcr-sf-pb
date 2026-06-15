@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import streamlit as st
 
+from tcr_bcr_tools.gui.validation_panel import render_validation_panel
 from tcr_bcr_tools.project import Dataset
 
 
@@ -28,6 +29,7 @@ def render_dataset_panel(dataset: Dataset) -> None:
     )
 
     _render_adapter_controls(dataset)
+    render_validation_panel(dataset)
 
     if dataset.manifest_path.exists():
         with st.expander("dataset.yaml"):

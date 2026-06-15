@@ -13,12 +13,17 @@ from tcr_bcr_tools.detection_curves import run_detection_curve_analysis
 from tcr_bcr_tools.expansion_concordance import run_expansion_concordance_analysis
 from tcr_bcr_tools.adapters.schema import UNIFIED_ANNOTATIONS_FILE, ensure_legacy_annotation_columns
 from tcr_bcr_tools.pipeline.step import PipelineContext, PipelineStep
+from tcr_bcr_tools.validation.report import (
+    VALIDATION_REPORT_FILE,
+    VALIDATION_SUMMARY_FILE,
+)
 from tcr_bcr_tools.rank_concordance import run_rank_concordance
 from tcr_bcr_tools.roc_auc_analysis import run_roc_auc_cli
 from tcr_bcr_tools.threshold_sweep import run_threshold_sweep_cli
 from tcr_bcr_tools.weighted_rank_concordance import run_weighted_rank_concordance
 
 STEP_ORDER = [
+    "validate_dataset",
     "extract_annotations",
     "build_unified_table",
     "build_detection_table",
@@ -38,17 +43,37 @@ def _workspace_relative(workspace_root: Path, path: Path) -> str:
 
 
 def _paths_from_files(workspace_root: Path, *paths: Path) -> dict[str, list[str]]:
-    csv_files: list[str] = []
-    png_files: list[str] = []
+    outputs: dict[str, list[str]] = {
+        "csv": [],
+        "png": [],
+        "yaml": [],
+        "json": [],
+    }
     for path in paths:
         if not path.exists():
             continue
         rel = _workspace_relative(workspace_root, path)
-        if path.suffix.lower() == ".csv":
-            csv_files.append(rel)
-        elif path.suffix.lower() in {".png", ".pdf", ".svg"}:
-            png_files.append(rel)
-    return {"csv": csv_files, "png": png_files}
+        suffix = path.suffix.lower()
+        if suffix == ".csv":
+            outputs["csv"].append(rel)
+        elif suffix in {".png", ".pdf", ".svg"}:
+            outputs["png"].append(rel)
+        elif suffix in {".yaml", ".yml"}:
+            outputs["yaml"].append(rel)
+        elif suffix == ".json":
+            outputs["json"].append(rel)
+    return outputs
+
+
+def _run_validate_dataset(ctx: PipelineContext) -> dict[str, list[str]]:
+    report = ctx.dataset.validate(repo_root=ctx.repo_root)
+    if report.summary.critical > 0:
+        raise ValueError(
+            f"Dataset validation blocked: {report.summary.critical} critical issue(s)."
+        )
+    report_path = ctx.intermediate_dir / VALIDATION_REPORT_FILE
+    summary_path = ctx.intermediate_dir / VALIDATION_SUMMARY_FILE
+    return _paths_from_files(ctx.workspace.root, report_path, summary_path)
 
 
 def _collect_dir_outputs(workspace_root: Path, output_dir: Path) -> dict[str, list[str]]:
@@ -145,13 +170,23 @@ def _run_decile_information(ctx: PipelineContext) -> dict[str, list[str]]:
 
 
 def _build_registry() -> dict[str, PipelineStep]:
+    validate_dependency = ["validate_dataset"]
     steps = [
+        PipelineStep(
+            id="validate_dataset",
+            name="Validate dataset",
+            description="Run quality validation on unified annotations and write reports.",
+            version=__version__,
+            dependencies=[],
+            callable=_run_validate_dataset,
+            output_directory="intermediate",
+        ),
         PipelineStep(
             id="extract_annotations",
             name="Extract annotations",
             description="Normalize raw dataset inputs to unified_annotations.csv via adapter.",
             version=__version__,
-            dependencies=[],
+            dependencies=validate_dependency,
             callable=_run_extract_annotations,
             output_directory="intermediate",
         ),
@@ -160,7 +195,7 @@ def _build_registry() -> dict[str, PipelineStep]:
             name="Unified table",
             description="Build cell receptor and clone count tables from combined annotations.",
             version=__version__,
-            dependencies=["extract_annotations"],
+            dependencies=[*validate_dependency, "extract_annotations"],
             callable=_run_build_unified_table,
             output_directory="intermediate",
         ),
@@ -169,7 +204,7 @@ def _build_registry() -> dict[str, PipelineStep]:
             name="Detection table",
             description="Build paired SF/blood clone detection table from clone counts.",
             version=__version__,
-            dependencies=["build_unified_table"],
+            dependencies=[*validate_dependency, "build_unified_table"],
             callable=_run_build_detection_table,
             output_directory="outputs",
         ),
@@ -178,7 +213,7 @@ def _build_registry() -> dict[str, PipelineStep]:
             name="Detection curves",
             description="Summarize detection probability by clone size bin.",
             version=__version__,
-            dependencies=["build_detection_table"],
+            dependencies=[*validate_dependency, "build_detection_table"],
             callable=_run_detection_curves,
             output_directory="detection_curves",
         ),
@@ -187,7 +222,7 @@ def _build_registry() -> dict[str, PipelineStep]:
             name="Expansion concordance",
             description="Compare SF and blood expansion status at a fixed threshold.",
             version=__version__,
-            dependencies=["build_detection_table"],
+            dependencies=[*validate_dependency, "build_detection_table"],
             callable=_run_expansion_concordance,
             output_directory="expansion_concordance",
         ),
@@ -196,7 +231,7 @@ def _build_registry() -> dict[str, PipelineStep]:
             name="Threshold sweep",
             description="Sweep expansion thresholds and summarize concordance.",
             version=__version__,
-            dependencies=["build_detection_table"],
+            dependencies=[*validate_dependency, "build_detection_table"],
             callable=_run_threshold_sweep,
             output_directory="threshold_sweep",
         ),
@@ -205,7 +240,7 @@ def _build_registry() -> dict[str, PipelineStep]:
             name="Rank concordance",
             description="Compare SF and blood clone ranks and percentiles.",
             version=__version__,
-            dependencies=["build_detection_table"],
+            dependencies=[*validate_dependency, "build_detection_table"],
             callable=_run_rank_concordance,
             output_directory="rank_concordance",
         ),
@@ -214,7 +249,7 @@ def _build_registry() -> dict[str, PipelineStep]:
             name="Weighted rank",
             description="Weighted rank concordance using rank table outputs.",
             version=__version__,
-            dependencies=["rank_concordance"],
+            dependencies=[*validate_dependency, "rank_concordance"],
             callable=_run_weighted_rank,
             output_directory="weighted_rank",
         ),
@@ -223,7 +258,7 @@ def _build_registry() -> dict[str, PipelineStep]:
             name="Correlation regression",
             description="Correlation and regression between SF and blood abundances.",
             version=__version__,
-            dependencies=["build_detection_table"],
+            dependencies=[*validate_dependency, "build_detection_table"],
             callable=_run_correlation_regression,
             output_directory="correlation_regression",
         ),
@@ -232,7 +267,7 @@ def _build_registry() -> dict[str, PipelineStep]:
             name="ROC / AUC",
             description="ROC and AUC analysis for expansion prediction.",
             version=__version__,
-            dependencies=["build_detection_table"],
+            dependencies=[*validate_dependency, "build_detection_table"],
             callable=_run_roc_auc,
             output_directory="roc_auc",
         ),
@@ -241,7 +276,7 @@ def _build_registry() -> dict[str, PipelineStep]:
             name="Decile information",
             description="Decile-based information content of abundance predictors.",
             version=__version__,
-            dependencies=["build_detection_table"],
+            dependencies=[*validate_dependency, "build_detection_table"],
             callable=_run_decile_information,
             output_directory="decile_information",
         ),
