@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tcr-bcr-tools"
+version = "0.4.8"
+description = "Tools for extracting and analyzing TCR/BCR annotation data from single-cell experiments."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pandas>=2.0",
+    "matplotlib>=3.7",
+    "scikit-learn>=1.3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+]
+
+[project.scripts]
+tcr-extract-annotations = "tcr_bcr_tools.extract_annotations:main"
+tcr-build-clonotypes = "tcr_bcr_tools.build_clonotypes:main"
+tcr-build-detection-table = "tcr_bcr_tools.build_detection_table:main"
+tcr-detection-curves = "tcr_bcr_tools.detection_curves:main"
+tcr-expansion-concordance = "tcr_bcr_tools.expansion_concordance:main"
+tcr-threshold-sweep = "tcr_bcr_tools.threshold_sweep:main"
+tcr-rank-concordance = "tcr_bcr_tools.rank_concordance:main"
+tcr-weighted-rank-concordance = "tcr_bcr_tools.weighted_rank_concordance:main"
+tcr-correlation-regression = "tcr_bcr_tools.correlation_regression:main"
+tcr-roc-auc-analysis = "tcr_bcr_tools.roc_auc_analysis:main"
+tcr-decile-information = "tcr_bcr_tools.decile_information:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["tcr_bcr_tools*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
