@@ -240,7 +240,23 @@ The Streamlit GUI reads outputs exclusively through the registry API (`list_outp
 
 Registry data is stored in `project.yaml` under `output_registry`. Favorites and recent files are stored under `project/cache/`.
 
-## Local Streamlit GUI
+## Desktop application
+
+```text
+User → MainWindow → Controllers → Workspace / Project / Dataset / PipelineRunner APIs
+```
+
+Launch:
+
+```bash
+python -m tcr_bcr_tools.desktop.app
+```
+
+The desktop shell (`src/tcr_bcr_tools/desktop/`) provides menu, toolbar, dock panels, and native folder dialogs. Controllers delegate to the same core APIs as the pipeline and project layers — **no analytical logic in the desktop UI**.
+
+Recent workspaces are stored in `~/.tcr_sf_pb/recent_workspaces.yaml`. Window geometry uses `QSettings`.
+
+## Local Streamlit GUI (deprecated prototype)
 
 ```bash
 streamlit run src/tcr_bcr_tools/gui/app.py

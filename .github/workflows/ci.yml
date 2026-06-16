@@ -31,6 +31,8 @@ jobs:
           pip install -e ".[dev]"
 
       - name: Run tests
+        env:
+          QT_QPA_PLATFORM: offscreen
         run: |
           pytest
 
@@ -43,5 +45,9 @@ jobs:
           pytest tests/test_output_registry.py tests/test_results_browser.py tests/test_csv_viewer.py tests/test_gallery.py tests/test_search.py -v
 
       - name: Smoke test imports
+        env:
+          QT_QPA_PLATFORM: offscreen
         run: |
           python -c "import tcr_bcr_tools"
+          python -c "import tcr_bcr_tools.desktop.app"
+          python -c "from PySide6.QtWidgets import QApplication"

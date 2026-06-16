@@ -44,7 +44,7 @@ Raw dataset → Adapter → Unified schema → Validation Framework → Pipeline
 | **Core library** | Implemented | Annotation extraction, clonotypes, paired detection table |
 | **Analysis modules** | Implemented | Detection curves, expansion, rank, regression, ROC, deciles |
 | **Pipeline** | Partial (CLI) | Each module has `python -m tcr_bcr_tools.<module>` entry point |
-| **GUI** | In progress | Local Streamlit shell — orchestration only, no analytics |
+| **GUI** | In progress | PySide6 desktop app (primary); Streamlit prototype deprecated |
 | **Project management** | Implemented | `Workspace`, `Project`, `Dataset` APIs |
 
 See [docs/architecture.md](docs/architecture.md) for details.
@@ -103,7 +103,8 @@ Full changelog: [CHANGELOG.md](CHANGELOG.md). Specifications: [specifications/](
 tcr-sf-pb/
 ├── src/tcr_bcr_tools/     # Core library, analysis modules, GUI, adapters
 │   ├── project/           # Workspace, project, dataset APIs
-│   ├── gui/               # Local Streamlit shell
+│   ├── desktop/           # PySide6 desktop application (primary GUI)
+│   ├── gui/               # Streamlit prototype (deprecated)
 │   └── adapters/          # Input format adapters
 ├── tests/                 # pytest suite
 ├── docs/                  # Architecture and design docs
@@ -187,9 +188,34 @@ pytest
 
 ---
 
-## Running GUI
+## Desktop application
 
-Local bioinformatics IDE at `http://localhost:8501`:
+The primary GUI direction is the **PySide6** desktop application (`src/tcr_bcr_tools/desktop/`).
+
+```bash
+pip install -e .
+python -m tcr_bcr_tools.desktop.app
+```
+
+Or:
+
+```bash
+tcr-desktop
+```
+
+Features in v0.6.0:
+
+- Native folder selection for workspaces and datasets
+- Menu bar, toolbar, dock panels (workspace explorer, inspector, logs)
+- Welcome panel, project/dataset overview (read-only)
+- Pipeline and results placeholders for later desktop releases
+- Controllers using existing `Workspace`, `Project`, `Dataset`, and `PipelineRunner` APIs
+
+**Streamlit GUI is deprecated** as a prototype and will be removed after the desktop migration. Do not add new Streamlit components.
+
+## Running GUI (Streamlit — deprecated)
+
+Local Streamlit prototype at `http://localhost:8501`:
 
 ```bash
 pip install -e .
@@ -298,9 +324,9 @@ runner.run_step("extract_annotations")
 runner.run()
 ```
 
-## Local Streamlit GUI
+## Local Streamlit GUI (deprecated)
 
-Local bioinformatics environment at `http://localhost:8501` (not a hosted web service).
+**Deprecated prototype** — use the desktop application instead.
 
 ```bash
 pip install -e .

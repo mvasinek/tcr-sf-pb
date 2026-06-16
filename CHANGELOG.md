@@ -2,6 +2,28 @@
 
 ## [Unreleased]
 
+## [0.6.0]
+
+### Added
+
+- PySide6 desktop application foundation.
+- Main window with menu, toolbar, dock panels and status bar.
+- Native workspace folder selection.
+- Workspace explorer.
+- Welcome panel.
+- Project overview panel.
+- Dataset overview panel.
+- Pipeline panel placeholder.
+- Results panel placeholder.
+- Log viewer.
+- Desktop controllers.
+- Recent workspace menu.
+
+### Changed
+
+- Desktop GUI is now the primary GUI direction.
+- Streamlit GUI is deprecated as a prototype.
+
 ## [0.5.5]
 
 ### Added
