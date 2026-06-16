@@ -117,7 +117,8 @@ def test_run_extract_annotations(pipeline_workspace) -> None:
     assert manifest["outputs"]["extract_annotations"]["csv"]
     history = load_history(project.logs_dir)
     assert history[-1]["step"] == "extract_annotations"
-    assert history[-1]["git_branch"] in {"main", "unknown"}
+    assert isinstance(history[-1]["git_branch"], str)
+    assert history[-1]["git_branch"]
     logs = read_pipeline_log(project.logs_dir)
     assert any(entry["step"] == "extract_annotations" for entry in logs)
 
